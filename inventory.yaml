@@ -1,0 +1,10 @@
+production_servers:
+  hosts:
+    netauto:
+      ansible_host: netauto.swmed.net
+
+lab_servers:
+  hosts:
+    netauto-lab:
+      ansible_host: 172.31.49.132
+
