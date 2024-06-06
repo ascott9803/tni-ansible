@@ -1,0 +1,29 @@
+---
+- name: Install Docker
+  hosts: lab_servers
+  tasks:
+
+  - name: Create the docker config directory.
+    become: yes
+    ansible.builtin.file:
+      path: /etc/docker
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Create the docker daemon config file.
+    become: yes
+    ansible.builtin.copy:
+      src: ../../files/docker/daemon.json
+      dest: /etc/docker/daemon.json
+      force: false
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Install Docker.
+    become: yes
+    ansible.builtin.package:
+      name: docker.io
+      state: present

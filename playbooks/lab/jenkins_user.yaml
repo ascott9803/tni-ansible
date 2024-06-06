@@ -1,0 +1,30 @@
+---
+- name: Create the Jenkins User
+  hosts: lab_servers
+  tasks:
+
+    - name: Retrieve Jenkins account from Vault
+      set_fact:
+        jenkins_account: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).jenkins | from_yaml }}"
+
+    - name: Debug the retrieved secret
+      debug:
+        msg: "Jenkins username: {{ jenkins_account.username }} and Jenkins password: {{ jenkins_account.password }}"
+
+    - name: Create/Update the Jenkins group
+      ansible.builtin.group:
+        name: "{{ jenkins_account.username }}"
+        state: present
+      become: yes
+
+    - name: Create/Update the jenkins user
+      ansible.builtin.user:
+        name: "{{ jenkins_account.username }}"
+        password: "{{ jenkins_account.password | password_hash('sha512') }}"
+        group: "{{ jenkins_account.username }}"
+        groups: docker
+        home: "/home/{{ jenkins_account.username }}"
+        shell: "/bin/bash"
+        update_password: always
+        state: present
+      become: yes
