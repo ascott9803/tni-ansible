@@ -1,0 +1,18 @@
+---
+- name: Install Docker
+  hosts: lab_servers
+  tasks:
+
+  - name: Install Base Packages
+    become: yes
+    ansible.builtin.package:
+      name:
+        - git
+        - iptables
+        - joe
+        - jq
+        - mc
+        - net-tools
+        - onesixtyone
+        - screen
+      state: present
