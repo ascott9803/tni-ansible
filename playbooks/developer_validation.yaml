@@ -5,7 +5,7 @@
 
     - name: Test retrieving values from Vault
       set_fact:
-        jenkins_account: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).jenkins | from_yaml }}"
+        jenkins_account: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).jenkins_account | from_yaml }}"
 
     - name: Display value from Vault
       debug:
