@@ -1,0 +1,73 @@
+---
+- name: Install Mariadb
+  hosts: lab_servers
+  tasks:
+
+    - name: Retrieve databased information from Vault
+      set_fact:
+        lab_db: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).lab_db | from_yaml }}"
+
+    - name: IPTables allow loopback to port 3306
+      become: yes
+      ansible.builtin.iptables:
+        chain: INPUT
+        in_interface: lo
+        protocol: tcp
+        match: tcp
+        destination_port: 3306
+        jump: ACCEPT
+
+    - name: IPTables allow docker0 to port 3306
+      become: yes
+      ansible.builtin.iptables:
+        chain: INPUT
+        in_interface: docker0
+        protocol: tcp
+        match: tcp
+        destination_port: 3306
+        jump: ACCEPT
+
+    - name: IPTables allow docker_gwbridge to port 3306
+      become: yes
+      ansible.builtin.iptables:
+        chain: INPUT
+        in_interface: docker_gwbridge
+        protocol: tcp
+        match: tcp
+        destination_port: 3306
+        jump: ACCEPT
+
+    - name: IPTables deny traffic port 3306
+      become: yes
+      ansible.builtin.iptables:
+        chain: INPUT
+        protocol: tcp
+        match: tcp
+        destination_port: 3306
+        jump: DROP
+
+    - name: Install MariaDB
+      become: yes
+      ansible.builtin.package:
+        name:
+          - python3-pymysql
+          - mariadb-client
+          - mariadb-server
+        state: present
+
+    - name: Create the database
+      become: yes
+      community.mysql.mysql_db:
+        name: "{{ lab_db.name }}"
+        state: present
+        login_unix_socket: /run/mysqld/mysqld.sock
+
+    - name: Create the user
+      become: yes
+      community.mysql.mysql_user:
+        name: "{{ lab_db.user }}" 
+        password: "{{ lab_db.pass }}"
+        host: "%"
+        state: present
+        priv: "{{ lab_db.name }}.*:ALL"
+        login_unix_socket: /run/mysqld/mysqld.sock
