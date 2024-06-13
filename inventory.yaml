@@ -5,6 +5,7 @@ production_servers:
 
 lab_servers:
   hosts:
-    netauto-lab:
+    pod-2-lab:
       ansible_host: 172.31.49.132
-
+    netauto-lab:
+      ansible_host: netauto-lab.tni.swmed.net
