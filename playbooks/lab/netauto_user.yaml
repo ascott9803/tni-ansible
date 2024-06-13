@@ -1,0 +1,77 @@
+---
+- name: Create the NetAuto User
+  hosts: lab_servers
+  tasks:
+
+    - name: Retrieve NetAuto secrets from Hashicorp Vault
+      set_fact:
+        netauto_account: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).netauto_account | from_yaml }}"
+        netauto_lab_ssh_key: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).netauto_lab_ssh_key }}"
+        netauto_lab_ssh_pub: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).netauto_lab_ssh_pub }}"
+        netauto_authorized_keys: "{{ lookup('community.hashi_vault.hashi_vault', 'dev_secret/data/accounts', token=hashicorp_vault_token, url=hashicorp_vault_addr).netauto_authorized_keys }}"
+
+    - name: Build vars 1
+      set_fact:
+        netauto_username: "{{ netauto_account.username }}"
+
+    - name: Build vars 2
+      set_fact:
+        netauto_home: "/home/{{ netauto_username }}"
+        netauto_ssh: "/home/{{ netauto_username }}/.ssh"
+
+    - name: Create/Update the NetAuto group
+      become: yes
+      ansible.builtin.group:
+        name: "{{ netauto_username }}"
+        state: present
+
+    - name: Create/Update the netauto user
+      become: yes
+      ansible.builtin.user:
+        name: "{{ netauto_username }}"
+        password: "{{ netauto_account.password | password_hash('sha512') }}"
+        group: "{{ netauto_username }}"
+        groups: docker
+        home: "{{ netauto_home }}"
+        shell: "/bin/bash"
+        update_password: always
+        state: present
+
+    - name: Create the netauto ssh folder
+      become: yes
+      ansible.builtin.file:
+        path: "{{ netauto_ssh }}"
+        state: directory
+        owner: "{{ netauto_username }}"
+        group: "{{ netauto_username }}"
+        mode: '0700'
+
+    - name: Create the netauto ssh key
+      become: yes
+      ansible.builtin.copy:
+        content: "{{ netauto_lab_ssh_key }}"
+        dest: "{{ netauto_ssh }}/id_rsa"
+        force: true
+        owner: "{{ netauto_username }}"
+        group: "{{ netauto_username }}"
+        mode: '0600'
+
+    - name: Create the netauto ssh pub
+      become: yes
+      ansible.builtin.copy:
+        content: "{{ netauto_lab_ssh_pub }}"
+        dest: "{{ netauto_ssh }}/id_rsa.pub"
+        force: true
+        owner: "{{ netauto_username }}"
+        group: "{{ netauto_username }}"
+        mode: '0644'
+
+    - name: Create the netauto ssh authorized keys
+      become: yes
+      ansible.builtin.copy:
+        content: "{{ netauto_authorized_keys }}"
+        dest: "{{ netauto_ssh }}/authorized_keys"
+        force: true
+        owner: "{{ netauto_username }}"
+        group: "{{ netauto_username }}"
+        mode: '0600'
